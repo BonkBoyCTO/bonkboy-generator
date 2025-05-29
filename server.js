@@ -98,7 +98,8 @@ app.post("/generate", async (req, res) => {
       ? "The character must exactly match BonkBoy's look: red hoodie with a 'B' on the chest, forward red cap with drink cans on both sides labeled HODL JUICE and ENGINE PUMP."
       : "";
 
-    const fullPrompt = `Create a vivid cartoon meme image of a human boy named BonkBoy based on this idea: \"${enhancedPrompt}\". Style: ${style}. ${strictDescription} It should be visually funny and themed to crypto or internet culture.`;
+    const fullPrompt = `A funny cartoon of a boy named BonkBoy wearing a red hoodie and cap, holding a glowing bat labeled BONK. Style: Comic book. Crypto meme style.`;
+    
 
     console.log("🖼️ Prompt sent to DALL·E:", fullPrompt);
 
