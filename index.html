@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>#BONKBOY MEME GENERATOR</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Impact, sans-serif;
+      background: url('bonkboy-bg.png') center/cover no-repeat;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .overlay {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 30px 20px;
+      max-width: 700px;
+      width: 100%;
+      border-radius: 15px;
+    }
+    h1 { font-size: 3em; color: #00aaff; margin: 10px 0; }
+    h2 { font-size: 1.5em; color: #fff; margin-bottom: 25px; text-shadow: 2px 2px #000; }
+    .bonkboy-img {
+      max-width: 260px;
+      margin: 20px auto;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+    audio { display: none; }
+    .input-area { margin-top: 30px; }
+    input, select, button {
+      padding: 12px;
+      font-size: 1.1em;
+      margin: 10px auto;
+      width: 90%;
+      max-width: 400px;
+      border: none;
+      border-radius: 5px;
+      display: block;
+    }
+    button {
+      background: #00aaff;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0077cc;
+      transform: scale(1.05);
+    }
+    #wallet-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #examples {
+      color: #ccc;
+      font-style: italic;
+      height: 20px;
+      margin: 10px 0;
+    }
+    #error { color: red; margin-top: 15px; }
+    .gallery-images img {
+      width: 150px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.73.3/lib/index.iife.min.js"></script>
+</head>
+<body>
+  <audio id="bonk-audio">
+    <source src="bonk.mp3" type="audio/mpeg" />
+  </audio>
+  <div class="overlay">
+    <h1>#BONKBOY MEME GENERATOR</h1>
+    <h2>MAKE MEMES. EARN CLOUT.</h2>
+    <img src="bonkboy-character.png" alt="BonkBoy" class="bonkboy-img" />
+    <div id="wallet-controls">
+      <button onclick="connectWallet()">Connect Wallet</button>
+      <button onclick="disconnectWallet()">Disconnect</button>
+    </div>
+    <div id="wallet-display"></div>
+    <div id="meme-stats" class="stats"></div>
+    <div class="input-area">
+      <select id="style">
+        <option value="Comic book">Comic book</option>
+        <option value="Pixel art">Pixel art</option>
+        <option value="Anime">Anime</option>
+        <option value="3D">3D</option>
+        <option value="Studio Ghibli">Studio Ghibli</option>
+        <option value="Fortnite-style 3D character">Fortnite-style 3D character</option>
+      </select>
+      <input id="prompt" type="text" placeholder="Your funny meme idea..." />
+      <label><input type="checkbox" id="strict-bonkboy" /> Strict BonkBoy Mode</label>
+      <div id="examples"></div>
+      <button onclick="generateMeme()">Generate Meme</button>
+    </div>
+    <div id="spinner" style="display:none;">Generating... ⏳</div>
+    <div id="result">
+      <img id="meme-image" alt="Generated Meme" style="max-width:100%; margin-top:20px; display:none;" />
+      <div class="action-buttons" id="buttons" style="display:none; margin-top:10px;">
+        <button onclick="downloadImage()">Download Meme</button>
+        <button onclick="shareOnX()">Post to X</button>
+      </div>
+      <p id="error"></p>
+    </div>
+    <div class="gallery">
+      <h3>🔥 Latest BonkBoy Memes</h3>
+      <div class="gallery-images" id="gallery-images"></div>
+    </div>
+  </div>
+<script>
+  const bonkAudio = document.getElementById("bonk-audio");
+  const examples = [
+    "BonkBoy teaches crypto to a squirrel 🐿️📈",
+    "BonkBoy’s hoodie is now made of gold ✨🧂",
+    "BonkBoy runs for mayor of Memetown 🙳️🤣",
+    "BonkBoy buys a coffee with SOL ☕️🚀",
+    "BonkBoy explains NFTs to his grandma 👵️🖼️"
+  ];
+  let exampleIndex = 0;
+  setInterval(() => {
+    document.getElementById("examples").textContent = examples[exampleIndex];
+    exampleIndex = (exampleIndex + 1) % examples.length;
+  }, 3000);
+
+  function playBonkSound() {
+    bonkAudio.currentTime = 0;
+    bonkAudio.play().catch(() => {
+      console.warn("🔇 User interaction required for autoplay in some browsers.");
+    });
+  }
+
+  async function connectWallet() {
+    if (window.solana && window.solana.isPhantom) {
+      try {
+        const res = await window.solana.connect();
+        const wallet = res.publicKey.toString();
+        localStorage.setItem("bonkboy_wallet", wallet);
+        document.getElementById("wallet-display").textContent = `Connected: ${wallet.slice(0, 6)}...`;
+        loadGallery(wallet);
+        updateStats(wallet);
+      } catch {
+        alert("Wallet connection failed.");
+      }
+    } else {
+      alert("Phantom Wallet not detected.");
+    }
+  }
+
+  function disconnectWallet() {
+    localStorage.removeItem("bonkboy_wallet");
+    document.getElementById("wallet-display").textContent = "Disconnected";
+    document.getElementById("meme-stats").textContent = "";
+    loadGallery();
+  }
+
+  async function generateMeme() {
+    const prompt = document.getElementById("prompt").value;
+    const style = document.getElementById("style").value;
+    const strict = document.getElementById("strict-bonkboy")?.checked;
+    const wallet = localStorage.getItem("bonkboy_wallet") || "anonymous";
+
+    const spinner = document.getElementById("spinner");
+    const image = document.getElementById("meme-image");
+    const error = document.getElementById("error");
+    const buttons = document.getElementById("buttons");
+
+    error.textContent = "";
+    image.style.display = "none";
+    buttons.style.display = "none";
+
+    if (!prompt) {
+      error.textContent = "Please enter a prompt.";
+      return;
+    }
+
+    playBonkSound();
+    spinner.style.display = "block";
+
+    try {
+      const response = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style, wallet, strictBonkboy: strict })
+      });
+
+      const data = await response.json();
+      spinner.style.display = "none";
+
+      if (data.error) {
+        error.textContent = data.error;
+      } else {
+        image.src = data.imageUrl;
+        image.style.display = "block";
+        buttons.style.display = "flex";
+        loadGallery(wallet);
+        updateStats(wallet);
+      }
+    } catch (err) {
+      spinner.style.display = "none";
+      error.textContent = "Something went wrong.";
+      console.error(err);
+    }
+  }
+
+  function downloadImage() {
+    const image = document.getElementById("meme-image");
+    const link = document.createElement("a");
+    link.href = image.src;
+    link.download = "bonkboy_meme.png";
+    link.click();
+  }
+
+  function shareOnX() {
+    const image = document.getElementById("meme-image").src;
+    const text = encodeURIComponent("Check out this BonkBoy meme! 🔥 #bonkboy #bonkboycto #memegenerator #crypto @bonk_boy_sol");
+    const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(image)}`;
+    window.open(url, "_blank");
+  }
+
+  async function loadGallery(wallet) {
+    const container = document.getElementById("gallery-images");
+    container.innerHTML = "";
+    try {
+      const endpoint = wallet ? `/gallery/${wallet}` : "/gallery";
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      data.reverse().forEach(item => {
+        const img = document.createElement("img");
+        img.src = item.url;
+        img.title = (item.wallet || "anon").slice(0, 6) + "...";
+        img.onerror = () => {
+          img.src = "bonkboy-character.png";
+          img.title = "Image not found";
+        };
+        container.appendChild(img);
+      });
+    } catch (err) {
+      console.error("Failed to load gallery", err);
+    }
+  }
+
+  function updateStats(wallet) {
+    fetch(`/gallery/${wallet}`)
+      .then(res => res.json())
+      .then(data => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todaysMemes = data.filter(m => m.timestamp >= today.getTime());
+        document.getElementById("meme-stats").textContent = `${todaysMemes.length} of 20 memes used today 🔥`;
+      });
+  }
+
+  const savedWallet = localStorage.getItem("bonkboy_wallet");
+  if (savedWallet) {
+    document.getElementById("wallet-display").textContent = `Connected: ${savedWallet.slice(0, 6)}...`;
+    loadGallery(savedWallet);
+    updateStats(savedWallet);
+  } else {
+    loadGallery();
+  }
+</script>
+</body>
+</html>

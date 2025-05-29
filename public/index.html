@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bonk Boy Meme Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Impact, sans-serif;
+      background: url('bonkboy-bg.png') center/cover no-repeat;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    .overlay {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px 20px;
+      max-width: 700px;
+      width: 100%;
+      border-radius: 15px;
+    }
+
+    h1 {
+      font-size: 3em;
+      color: #00aaff;
+      margin: 10px 0;
+    }
+
+    h2 {
+      font-size: 1.8em;
+      color: #fff;
+      margin-bottom: 25px;
+      text-shadow: 2px 2px #000;
+    }
+
+    .bonkboy-img {
+      max-width: 260px;
+      margin: 20px auto;
+      display: block;
+    }
+
+    .starburst {
+      display: inline-block;
+      background: yellow;
+      color: black;
+      font-weight: bold;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 50%;
+      box-shadow: 3px 3px #000;
+      font-size: 1em;
+    }
+
+    .input-area {
+      margin-top: 30px;
+    }
+
+    input, select, button {
+      padding: 12px;
+      font-size: 1.1em;
+      margin: 10px auto;
+      width: 90%;
+      max-width: 400px;
+      border: none;
+      border-radius: 5px;
+      display: block;
+    }
+
+    button {
+      background: #00aaff;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #spinner {
+      display: none;
+      margin-top: 15px;
+      font-size: 1.1em;
+    }
+
+    #result img {
+      max-width: 100%;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .action-buttons {
+      margin-top: 20px;
+      display: none;
+      text-align: center;
+    }
+
+    .action-buttons button {
+      display: inline-block;
+      margin: 5px 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #00aaff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #examples {
+      color: #ccc;
+      font-style: italic;
+      height: 20px;
+      margin: 10px 0;
+    }
+
+    #error {
+      color: red;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <audio id="bonk-sfx" src="bonk.mp3" preload="auto"></audio>
+
+  <div class="overlay">
+    <h1>#BONKBOYMEME</h1>
+    <h2>MAKE MEMES. EARN CLOUT.</h2>
+
+    <img src="bonkboy-character.png" alt="BonkBoy" class="bonkboy-img"/>
+
+    <div>
+      <div class="starburst">WEEKLY PRIZES!</div>
+      <div class="starburst">$BONKBOY AIRDROPS!</div>
+      <div class="starburst">EXCLUSIVE NFTS!</div>
+    </div>
+
+    <div class="input-area">
+      <select id="style">
+        <option value="Comic book">Comic book</option>
+        <option value="Pixel art">Pixel art</option>
+        <option value="Anime">Anime</option>
+        <option value="3D">3D</option>
+        <option value="Studio Ghibli">Studio Ghibli</option>
+        <option value="Fortnite-style 3D character">Fortnite-style 3D character</option>
+      </select>
+
+      <input id="prompt" type="text" placeholder="Your funny meme idea..." />
+      <div id="examples"></div>
+      <button onclick="generateMeme()">Generate Meme</button>
+    </div>
+
+    <div id="spinner">Generating... ⏳</div>
+
+    <div id="result">
+      <img id="meme-image" alt="Generated Meme" />
+      <div class="action-buttons" id="buttons">
+        <button onclick="downloadImage()">Download Meme</button>
+        <button onclick="shareOnX()">Post to X</button>
+      </div>
+      <p id="error"></p>
+    </div>
+  </div>
+
+  <script>
+    const examples = [
+      "BonkBoy teaches crypto to a squirrel 🐿️📈",
+      "BonkBoy’s hoodie is now made of gold ✨🧢",
+      "BonkBoy runs for mayor of Memetown 🗳️🤣",
+      "BonkBoy buys a coffee with SOL ☕🚀",
+      "BonkBoy explains NFTs to his grandma 👵🖼️"
+    ];
+    let exampleIndex = 0;
+
+    setInterval(() => {
+      const ex = document.getElementById("examples");
+      ex.textContent = examples[exampleIndex];
+      exampleIndex = (exampleIndex + 1) % examples.length;
+    }, 3000);
+
+    async function generateMeme() {
+      const bonkSound = document.getElementById("bonk-sfx");
+      bonkSound.currentTime = 0;
+      bonkSound.play();
+
+      const prompt = document.getElementById("prompt").value;
+      const style = document.getElementById("style").value;
+      const spinner = document.getElementById("spinner");
+      const image = document.getElementById("meme-image");
+      const error = document.getElementById("error");
+      const buttons = document.getElementById("buttons");
+
+      error.textContent = "";
+      image.style.display = "none";
+      buttons.style.display = "none";
+
+      if (!prompt) {
+        error.textContent = "Please enter a prompt.";
+        return;
+      }
+
+      spinner.style.display = "block";
+
+      try {
+        const response = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, style })
+        });
+
+        const data = await response.json();
+        spinner.style.display = "none";
+
+        if (data.error) {
+          error.textContent = data.error;
+        } else {
+          image.src = data.imageUrl;
+          image.style.display = "block";
+          buttons.style.display = "block";
+        }
+      } catch (err) {
+        spinner.style.display = "none";
+        error.textContent = "Something went wrong.";
+        console.error(err);
+      }
+    }
+
+    function downloadImage() {
+      const image = document.getElementById("meme-image");
+      const link = document.createElement("a");
+      link.href = image.src;
+      link.download = "bonkboy_meme.png";
+      link.click();
+    }
+
+    function shareOnX() {
+      const image = document.getElementById("meme-image").src;
+      const text = encodeURIComponent("Check out this BonkBoy meme! 🔥 #bonkboy #bonkboycto #memegenerator #crypto @bonk_boy_sol");
+      const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(image)}`;
+      window.open(url, "_blank");
+    }
+  </script>
+</body>
+</html>
