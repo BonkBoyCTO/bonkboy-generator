@@ -68,7 +68,7 @@ app.post("/generate", async (req, res) => {
       m.timestamp >= todayStart.getTime()
   );
 
-  if (walletMemesToday.length >= 20) {
+  if (walletMemesToday.length >= 100) {
     return res
       .status(429)
       .json({ error: "Daily limit reached. You can generate 20 memes per day." });
